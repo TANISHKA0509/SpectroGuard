@@ -237,7 +237,7 @@ async function uploadFile(file) {
       throw new Error(typeof detail === "string" ? detail : "Upload failed");
     }
     videoId = data.video_id;
-    $("video-preview").src = data.video_url;
+    $("video-preview").src = `${API}${data.video_url}`;
     show($("preview-block"));
     analyzeBtn.disabled = false;
   } catch (err) {
