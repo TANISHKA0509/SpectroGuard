@@ -9,8 +9,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # CPU-only PyTorch keeps the image small (~800 MB vs multi-GB CUDA images).
+# The CPU index has x86_64 wheels; on ARM64 (e.g. Oracle free VMs) fall back to
+# PyPI's CPU-only aarch64 wheels.
 COPY requirements.txt ./
-RUN pip install --no-cache-dir torch==2.4.1 torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cpu \
+RUN (pip install --no-cache-dir torch==2.4.1 torchvision==0.19.1 --index-url https://download.pytorch.org/whl/cpu \
+     || pip install --no-cache-dir torch==2.4.1 torchvision==0.19.1) \
     && pip install --no-cache-dir -r requirements.txt
 
 COPY . .
