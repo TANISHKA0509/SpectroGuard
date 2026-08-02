@@ -23,3 +23,6 @@ Thumbs.db
 # Runtime data (SQLite db, logs)
 data/
 *.log
+
+# Local-only study notes (interview Q&A - NOT for GitHub)
+STUDY_QUESTIONS.md
