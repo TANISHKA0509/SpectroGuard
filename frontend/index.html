@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SpectroGuard - Deepfake Video Call Detection</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">SG</span>
+      <div>
+        <h1>SpectroGuard</h1>
+        <p>Deepfake Video Call Detection Prototype</p>
+      </div>
+    </div>
+    <a class="health" id="health" href="/health" target="_blank" title="Backend health">
+      <span class="dot"></span> backend
+    </a>
+  </header>
+
+  <main class="container">
+    <!-- Step 1: Upload -->
+    <section class="card" id="upload-card">
+      <h2>1 &middot; Upload a video</h2>
+      <p class="hint">MP4 recommended (also .mov, .avi, .mkv, .webm) &mdash; max 200 MB</p>
+
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="file-input" accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm" />
+        <div class="dz-inner" id="dz-inner">
+          <div class="dz-icon">&#9654;</div>
+          <p>Drag &amp; drop a video here, or <strong>click to browse</strong></p>
+          <p class="dz-file" id="dz-file"></p>
+        </div>
+      </div>
+
+      <div class="error-box hidden" id="error-box"></div>
+
+      <div class="preview hidden" id="preview-block">
+        <video id="video-preview" controls playsinline></video>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="analyze-btn" disabled>Analyze Video</button>
+        <button class="btn ghost" id="reset-btn" disabled>Reset</button>
+      </div>
+    </section>
+
+    <!-- Step 2: Progress -->
+    <section class="card hidden" id="status-card">
+      <h2>2 &middot; Analyzing</h2>
+      <div class="status-row">
+        <span class="spinner"></span>
+        <span id="status-message">Starting analysis...</span>
+      </div>
+      <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+    </section>
+
+    <!-- Step 3: Results -->
+    <section class="card hidden" id="result-card">
+      <h2>3 &middot; Result</h2>
+
+      <div class="verdict" id="verdict">
+        <div class="badge" id="prediction-badge">REAL</div>
+        <div class="confidence">
+          <div class="confidence-head">
+            <span>Confidence</span>
+            <strong id="confidence-value">0%</strong>
+          </div>
+          <div class="bar"><div class="bar-fill" id="confidence-bar"></div></div>
+        </div>
+      </div>
+
+      <div class="stats" id="stats">
+        <div class="stat"><span>Frames analyzed</span><strong id="frames">-</strong></div>
+        <div class="stat"><span>Faces found</span><strong id="faces">-</strong></div>
+        <div class="stat"><span>Processing time</span><strong id="time">-</strong></div>
+        <div class="stat"><span>Votes (Real/Fake)</span><strong id="votes">-</strong></div>
+      </div>
+
+      <p class="disclaimer">
+        Educational prototype. This verdict is based on sampled frames from a
+        pre-trained FaceForensics++ model and is <strong>not</strong> a forensic-grade
+        or production-level result.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    Built with FastAPI &middot; OpenCV &middot; PyTorch &middot; HTML/CSS/JS
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

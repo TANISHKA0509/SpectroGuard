@@ -1,0 +1,14 @@
+# Render.com deployment config (free tier).
+# Push this repo to GitHub, connect it on Render, and this file is picked up
+# automatically. Uses the Docker runtime so the model is downloaded at build.
+services:
+  - type: web
+    name: spectroguard
+    runtime: docker
+    repo: https://github.com/YOUR_GITHUB_USERNAME/spectroguard
+    plan: free
+    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 7860

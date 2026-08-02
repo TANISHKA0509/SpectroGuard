@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Model weights (large binary files - downloaded on first run / at build time)
+models/*.pth
+models/*.pt
+!models/.gitkeep
+
+# Uploaded videos (runtime data)
+uploads/*
+!uploads/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Misc
+*.log
