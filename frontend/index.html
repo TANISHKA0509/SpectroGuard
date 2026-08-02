@@ -24,7 +24,6 @@
       </span>
     </button>
     <div class="top-actions">
-      <span class="quota" id="quota-chip" title="Free checks remaining">3 free</span>
       <div class="auth-btns" id="auth-btns">
         <button class="btn ghost sm" id="signin-btn">Sign in</button>
         <button class="btn primary sm" id="signup-btn">Sign up</button>
@@ -43,14 +42,13 @@
   <main id="landing-view" class="view">
     <section class="hero">
       <div class="scan-line" aria-hidden="true"></div>
-      <span class="hero-badge">Educational Prototype &middot; PyTorch &middot; OpenCV &middot; FastAPI</span>
 
       <h1 class="spectrog" aria-label="SpectroGuard">
         <span class="sg-spec">SPECTRO</span><span class="sg-guard">GUARD</span>
       </h1>
 
       <p class="tagline">Real or fake? <strong>SpectroGuard</strong> analyzes video frames with a
-        pre-trained deepfake detector and tells you within seconds.</p>
+        deepfake detector and tells you within seconds.</p>
 
       <div class="hero-stats" id="hero-stats">
         <div class="hero-stat">
@@ -151,8 +149,6 @@
           </div>
         </div>
 
-        <p class="quota-hint">First <strong>3 checks are free</strong> &mdash; sign in for unlimited.</p>
-
         <div class="error-box hidden" id="error-box"></div>
 
         <div class="preview hidden" id="preview-block">
@@ -213,7 +209,7 @@
       <button class="modal-close" id="modal-close" title="Close">&times;</button>
       <span class="modal-logo">SG</span>
       <h3 id="modal-title">Sign in</h3>
-      <p class="modal-note" id="modal-note">Sign in to continue with unlimited checks.</p>
+      <p class="modal-note" id="modal-note">Sign in to continue.</p>
 
       <div class="tabs">
         <button class="tab active" id="tab-signin">Sign in</button>
@@ -228,8 +224,6 @@
         <p class="auth-error hidden" id="auth-error"></p>
         <button type="submit" class="btn primary full" id="auth-submit">Continue</button>
       </form>
-
-      <p class="modal-foot">3 free checks per browser &middot; sign in for unlimited access.</p>
     </div>
   </div>
 

@@ -4,7 +4,6 @@
  */
 
 const ALLOWED = ["mp4", "mov", "avi", "mkv", "webm"];
-const FREE_LIMIT = 3;
 
 let videoId = null;
 let pollTimer = null;
@@ -71,26 +70,6 @@ function startCountUps() {
 const tickerTrack = $("ticker-track");
 tickerTrack.innerHTML += tickerTrack.innerHTML;
 
-/* ================= Quota chip ================= */
-async function refreshQuota() {
-  try {
-    const res = await fetch("/api/quota", { headers: apiHeaders() });
-    const data = await res.json();
-    const chip = $("quota-chip");
-    if (data.authenticated) {
-      chip.textContent = "Unlimited";
-      chip.title = "Signed in - unlimited checks";
-      chip.classList.add("authed");
-      chip.classList.remove("exhausted");
-    } else {
-      chip.textContent = `${data.remaining} free`;
-      chip.title = `${data.used}/${data.limit} free checks used`;
-      chip.classList.remove("authed");
-      chip.classList.toggle("exhausted", data.remaining <= 0);
-    }
-  } catch { /* backend down - ignore */ }
-}
-
 /* ================= Auth UI ================= */
 function updateAuthUI() {
   const logged = Boolean(token);
@@ -107,7 +86,6 @@ function logout() {
   token = null;
   localStorage.removeItem("sg_token");
   updateAuthUI();
-  refreshQuota();
 }
 
 /* ================= Auth modal ================= */
@@ -133,8 +111,8 @@ function setAuthTab(tab) {
   $("tab-signup").classList.toggle("active", signup);
   $("modal-title").textContent = signup ? "Create account" : "Sign in";
   $("modal-note").textContent = signup
-    ? "Create a free account for unlimited checks."
-    : "Sign in to continue with unlimited checks.";
+    ? "Create an account to continue."
+    : "Sign in to continue.";
   $("auth-submit").textContent = signup ? "Create account" : "Sign in";
   $("auth-password").autocomplete = signup ? "new-password" : "current-password";
 }
@@ -173,7 +151,6 @@ $("auth-form").addEventListener("submit", async (e) => {
     localStorage.setItem("sg_token", token);
     closeAuthModal();
     updateAuthUI();
-    refreshQuota();
     if (pendingFile) {
       const f = pendingFile;
       pendingFile = null;
@@ -258,7 +235,6 @@ async function uploadFile(file) {
     $("video-preview").src = data.video_url;
     show($("preview-block"));
     analyzeBtn.disabled = false;
-    refreshQuota(); // a free check was just used
   } catch (err) {
     setError(err.message);
   }
@@ -361,4 +337,3 @@ resetBtn.addEventListener("click", () => location.reload());
 /* ---------- Init ---------- */
 onHash();
 updateAuthUI();
-refreshQuota();

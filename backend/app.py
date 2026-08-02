@@ -261,7 +261,7 @@ async def upload_video(
             status_code=403,
             detail={
                 "code": "login_required",
-                "message": f"You've used all {FREE_UPLOADS} free checks. Sign in to continue.",
+                "message": "Please sign in to continue.",
                 "free_limit": FREE_UPLOADS,
             },
         )
