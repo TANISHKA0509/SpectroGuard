@@ -5,7 +5,7 @@ services:
   - type: web
     name: spectroguard
     runtime: docker
-    repo: https://github.com/YOUR_GITHUB_USERNAME/spectroguard
+    repo: https://github.com/TANISHKA0509/SpectroGuard
     plan: free
     healthCheckPath: /health
     dockerfilePath: ./Dockerfile

@@ -114,8 +114,15 @@ def load_model(
 ) -> tuple[DeepfakeDetector, torch.device]:
     """Load the pre-trained detector into memory and switch to eval mode.
 
-    Returns ``(model, device)``. Called once during application startup.
+    Returns ``(model, device)``. Called once when the first video is analysed
+    (the app boots without the model to stay within free-tier memory limits).
     """
+    import os
+
+    # Cap worker threads: keeps memory low on constrained hosts (Render free)
+    # and avoids oversubscribing on single-vCPU machines.
+    torch.set_num_threads(min(2, os.cpu_count() or 1))
+
     ensure_model_file()
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -73,15 +73,30 @@ class AuthRequest(BaseModel):
 
 
 # --------------------------------------------------------------------------
-# App lifecycle: init DB and load the pre-trained model once at startup.
+# App lifecycle: init DB. The model is loaded lazily on first analysis
+# (see get_model) so the app boots fast and stays light on free tiers
+# (e.g. Render free = 512 MB RAM).
 # --------------------------------------------------------------------------
+MODEL_LOCK = threading.Lock()
+
+
+def get_model() -> tuple:
+    """Return the loaded model, loading it on first use (thread-safe)."""
+    model = getattr(app.state, "model", None)
+    if model is None:
+        with MODEL_LOCK:
+            model = getattr(app.state, "model", None)
+            if model is None:
+                model, device = model_module.load_model()
+                app.state.model = model
+                app.state.device = device
+                logger.info("Model loaded lazily (device=%s)", device)
+    return app.state.model, app.state.device
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     db.init_db()
-    model, device = model_module.load_model()
-    app.state.model = model
-    app.state.device = device
-    logger.info("SpectroGuard ready (device=%s)", device)
     yield
 
 
@@ -135,9 +150,10 @@ def _process_video(video_id: str) -> None:
     start = time.perf_counter()
     try:
         job["message"] = "Sampling frames and running the model..."
+        model, device = get_model()
         output = run_inference(
-            app.state.model,
-            app.state.device,
+            model,
+            device,
             job["filepath"],
         )
         job["progress"] = 80
