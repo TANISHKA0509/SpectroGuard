@@ -5,6 +5,11 @@
 
 const ALLOWED = ["mp4", "mov", "avi", "mkv", "webm"];
 
+/* API base: defaults to same origin. Set SG_API_BASE in a config script or
+ * browser console when the frontend is hosted separately from the backend
+ * (e.g. frontend on Vercel, backend on Render). */
+const API = (window.SG_API_BASE || "").replace(/\/+$/, "");
+
 let videoId = null;
 let pollTimer = null;
 let pendingFile = null;
@@ -76,7 +81,7 @@ function updateAuthUI() {
   $("auth-btns").classList.toggle("hidden", logged);
   $("user-chip").classList.toggle("hidden", !logged);
   if (!logged) return;
-  fetch("/api/auth/me", { headers: apiHeaders() })
+  fetch(`${API}/api/auth/me`, { headers: apiHeaders() })
     .then((r) => (r.ok ? r.json() : Promise.reject()))
     .then((data) => { $("user-email").textContent = data.user.email; })
     .catch(() => logout());
@@ -135,7 +140,7 @@ $("auth-form").addEventListener("submit", async (e) => {
   btn.disabled = true;
   btn.textContent = "Please wait...";
   try {
-    const res = await fetch(`/api/auth/${endpoint}`, {
+    const res = await fetch(`${API}/api/auth/${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -220,7 +225,7 @@ async function uploadFile(file) {
   const form = new FormData();
   form.append("file", file);
   try {
-    const res = await fetch("/api/upload", { method: "POST", body: form, headers: apiHeaders() });
+    const res = await fetch(`${API}/api/upload`, { method: "POST", body: form, headers: apiHeaders() });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const detail = data.detail || {};
@@ -251,7 +256,7 @@ analyzeBtn.addEventListener("click", async () => {
   $("progress-fill").style.width = "5%";
 
   try {
-    const res = await fetch(`/api/analyze/${videoId}`, { method: "POST" });
+    const res = await fetch(`${API}/api/analyze/${videoId}`, { method: "POST" });
     if (!res.ok) {
       const data = await res.json();
       throw new Error(data.detail || "Could not start analysis");
@@ -266,7 +271,7 @@ analyzeBtn.addEventListener("click", async () => {
 
 async function pollStatus() {
   try {
-    const res = await fetch(`/api/status/${videoId}`);
+    const res = await fetch(`${API}/api/status/${videoId}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Status check failed");
 
@@ -290,7 +295,7 @@ async function pollStatus() {
 
 /* ---------- Result ---------- */
 async function fetchResult() {
-  const res = await fetch(`/api/result/${videoId}`);
+  const res = await fetch(`${API}/api/result/${videoId}`);
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || "Could not fetch result");
   renderResult(data.result);
@@ -323,16 +328,32 @@ function renderResult(r) {
 /* ---------- Reset ---------- */
 resetBtn.addEventListener("click", () => location.reload());
 
-/* ---------- Backend health pill ---------- */
-(async () => {
+/* ---------- Backend health pill + connect banner ---------- */
+const healthEl = document.querySelector(".health");
+const connectBanner = $("connect-banner");
+if (healthEl) healthEl.href = `${API}/health`;
+
+let healthTimer = null;
+const HEALTH_TIMEOUT = 4000;
+
+async function checkHealth() {
   try {
-    const res = await fetch("/health");
-    document.querySelector(".health").classList.toggle("ok", res.ok);
-    document.querySelector(".health").classList.toggle("down", !res.ok);
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), HEALTH_TIMEOUT);
+    const res = await fetch(`${API}/health`, { signal: ctrl.signal });
+    clearTimeout(t);
+    const up = res.ok;
+    healthEl.classList.toggle("ok", up);
+    healthEl.classList.toggle("down", !up);
+    connectBanner.classList.toggle("hidden", up);
+    healthTimer = setTimeout(checkHealth, up ? 30000 : 5000);
   } catch {
-    document.querySelector(".health").classList.add("down");
+    healthEl.classList.add("down");
+    connectBanner.classList.remove("hidden");
+    healthTimer = setTimeout(checkHealth, 5000);
   }
-})();
+}
+checkHealth();
 
 /* ---------- Init ---------- */
 onHash();

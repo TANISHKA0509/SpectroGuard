@@ -89,6 +89,22 @@ body {
 .health.ok .dot { background: var(--green); box-shadow: 0 0 10px var(--green); }
 .health.down .dot { background: var(--red); box-shadow: 0 0 10px var(--red); }
 
+/* ---------- Backend connect banner ---------- */
+.connect-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 11px 16px;
+  background: rgba(8, 14, 28, 0.94); backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(55, 208, 255, 0.3);
+  color: var(--cyan); font-size: 13.5px; font-weight: 600; letter-spacing: 0.3px;
+  animation: fadeIn 0.25s ease both;
+}
+.connect-banner .spinner {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid rgba(55, 208, 255, 0.25); border-top-color: var(--cyan);
+  animation: spin 0.8s linear infinite;
+}
+
 /* ---------- Top-right actions (auth) ---------- */
 .top-actions { display: flex; align-items: center; gap: 10px; }
 .auth-btns { display: flex; gap: 8px; }

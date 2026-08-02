@@ -15,6 +15,12 @@
     <div class="grid"></div>
   </div>
 
+  <!-- Backend connect banner (shown while the API is waking up / reconnecting) -->
+  <div class="connect-banner hidden" id="connect-banner" role="status" aria-live="polite">
+    <span class="spinner" aria-hidden="true"></span>
+    <span>Please wait while we connect the backend to the frontend&hellip;</span>
+  </div>
+
   <header class="topbar">
     <button class="brand" id="brand" title="Back to home">
       <span class="logo">SG</span>
@@ -227,6 +233,7 @@
     </div>
   </div>
 
+  <script src="config.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
