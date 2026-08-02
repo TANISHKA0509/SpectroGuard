@@ -258,7 +258,7 @@ curl http://localhost:8000/api/result/<video_id>
 
 ---
 
-## 🐳 Running with Docker
+##  Running with Docker
 
 ```bash
 docker build -t spectroguard .
@@ -271,7 +271,7 @@ it starts fast.
 
 ---
 
-## ☁️ Deployment
+## Deployment
 
 The app is a standard FastAPI service and deploys anywhere that runs Python.
 Two ready-made options:
@@ -328,7 +328,7 @@ Two ready-made options:
 
 ---
 
-## 🔮 Future improvements
+##  Future improvements
 
 - [ ] Face alignment + cropping via a more robust detector (MTCNN / YuNet).
 - [ ] Temporal aggregation (LSTM / voting over sliding windows of frames).
@@ -347,7 +347,7 @@ Two ready-made options:
 - FaceForensics++ — Rössler et al. (2019)
 - Pre-trained model: [FaceForge Detector](https://huggingface.co/huzaifanasirrr/faceforge-detector)
 
-## 📄 License
+##  License
 
 MIT — see the LICENSE note in the model card. Use responsibly: this tool is
 for education and legitimate verification, not surveillance or abuse.
