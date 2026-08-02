@@ -4,6 +4,10 @@ REST API that accepts a video upload, runs the pre-trained deepfake detector
 over sampled frames in the background, and returns a Real/Fake verdict with a
 confidence score.
 
+Also includes simple email/password authentication (SQLite + JWT):
+the first ``FREE_UPLOADS`` checks are free for anonymous clients; afterwards
+uploading requires a signed-in account.
+
 The frontend (``frontend/``) is served from the same app, so the whole
 prototype runs on a single server.
 """
@@ -12,16 +16,21 @@ from __future__ import annotations
 
 import logging
 import mimetypes
+import re
 import threading
 import time
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
+from . import auth as auth_module
+from . import database as db
 from . import model as model_module
 from .inference import aggregate_video_prediction, run_inference
 from .utils import (
@@ -45,17 +54,30 @@ FRONTEND_DIR = BASE_DIR / "frontend"
 MAX_UPLOAD_MB = 200
 MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
 
+#: Number of free anonymous uploads before sign-in is required.
+FREE_UPLOADS = 3
+
 #: In-memory job store: video_id -> job dict.
 #: (In-memory is fine for a prototype; see README limitations section.)
 JOBS: dict[str, dict] = {}
 JOBS_LOCK = threading.Lock()
 
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+class AuthRequest(BaseModel):
+    """Body for register/login requests."""
+
+    email: str
+    password: str
+
 
 # --------------------------------------------------------------------------
-# App lifecycle: load the pre-trained model once at startup.
+# App lifecycle: init DB and load the pre-trained model once at startup.
 # --------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    db.init_db()
     model, device = model_module.load_model()
     app.state.model = model
     app.state.device = device
@@ -67,7 +89,7 @@ app = FastAPI(
     title="SpectroGuard",
     description="Deepfake Video Call Detection -- educational prototype using a "
     "pre-trained FaceForensics++ Xception model.",
-    version="1.0.0",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
@@ -92,6 +114,21 @@ def get_job(video_id: str) -> dict:
     return job
 
 
+def current_user_or_none(authorization: str | None) -> dict | None:
+    """Resolve the Authorization header to a user dict (or None)."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        return None
+    token = authorization.split(" ", 1)[1].strip()
+    user_id = auth_module.decode_token(token)
+    if user_id is None:
+        return None
+    return db.get_user_by_id(user_id)
+
+
+def client_id_or_default(x_client_id: str | None) -> str:
+    return (x_client_id or "anonymous").strip() or "anonymous"
+
+
 def _process_video(video_id: str) -> None:
     """Background worker: extract -> preprocess -> infer -> aggregate."""
     job = get_job(video_id)
@@ -111,7 +148,6 @@ def _process_video(video_id: str) -> None:
             frame_predictions=output["frame_predictions"],
             frame_confidences=output["frame_confidences"],
         )
-        # Extend with video-level metadata
         result["processing_time"] = round(time.perf_counter() - start, 2)
         result["inference_time"] = output["inference_time"]
         result.update(output["metadata"])
@@ -130,22 +166,83 @@ def _process_video(video_id: str) -> None:
 
 
 # --------------------------------------------------------------------------
-# API endpoints
+# Auth API
 # --------------------------------------------------------------------------
-@app.get("/health")
-def health() -> dict:
-    """Liveness + readiness check used by deployment platforms."""
+@app.post("/api/auth/register")
+def register(payload: AuthRequest) -> dict:
+    """Create an account and return a token."""
+    email = payload.email.strip().lower()
+    if not EMAIL_RE.fullmatch(email):
+        raise HTTPException(status_code=400, detail="Please enter a valid email address.")
+    if len(payload.password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
+    if db.get_user_by_email(email):
+        raise HTTPException(status_code=409, detail="An account with this email already exists.")
+
+    user_id = uuid.uuid4().hex
+    salt, password_hash = auth_module.hash_password(payload.password)
+    db.create_user(user_id, email, password_hash, salt)
+
+    token = auth_module.create_token(user_id)
+    logger.info("Registered new user %s", email)
+    return {"token": token, "user": {"id": user_id, "email": email}}
+
+
+@app.post("/api/auth/login")
+def login(payload: AuthRequest) -> dict:
+    """Verify credentials and return a token."""
+    email = payload.email.strip().lower()
+    user = db.get_user_by_email(email)
+    if user is None or not auth_module.verify_password(payload.password, user["salt"], user["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+    token = auth_module.create_token(user["id"])
+    return {"token": token, "user": {"id": user["id"], "email": user["email"]}}
+
+
+@app.get("/api/auth/me")
+def me(authorization: str | None = Header(default=None)) -> dict:
+    """Return the current user (requires a valid token)."""
+    user = current_user_or_none(authorization)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated.")
+    return {"user": {"id": user["id"], "email": user["email"]}}
+
+
+@app.get("/api/quota")
+def quota(
+    authorization: str | None = Header(default=None),
+    x_client_id: str | None = Header(default=None, alias="X-Client-Id"),
+) -> dict:
+    """Report remaining free checks (or unlimited when signed in)."""
+    user = current_user_or_none(authorization)
+    if user is not None:
+        return {"authenticated": True, "used": None, "limit": None, "remaining": None}
+
+    cid = client_id_or_default(x_client_id)
+    used = db.get_anon_used(cid)
     return {
-        "status": "ok",
-        "model_loaded": hasattr(app.state, "model"),
-        "device": str(getattr(app.state, "device", "n/a")),
-        "model": model_module.MODEL_REPO_ID,
+        "authenticated": False,
+        "used": used,
+        "limit": FREE_UPLOADS,
+        "remaining": max(0, FREE_UPLOADS - used),
     }
 
 
+# --------------------------------------------------------------------------
+# Video API
+# --------------------------------------------------------------------------
 @app.post("/api/upload")
-async def upload_video(file: UploadFile = File(...)) -> dict:
-    """Accept a video file, store it under uploads/, and register a job."""
+async def upload_video(
+    file: UploadFile = File(...),
+    authorization: str | None = Header(default=None),
+    x_client_id: str | None = Header(default=None, alias="X-Client-Id"),
+) -> dict:
+    """Accept a video file, store it under uploads/, and register a job.
+
+    Anonymous clients get ``FREE_UPLOADS`` free uploads; afterwards a
+    signed-in account is required.
+    """
     filename = file.filename or "video.mp4"
     if not is_allowed_file(filename):
         raise HTTPException(
@@ -154,6 +251,19 @@ async def upload_video(file: UploadFile = File(...)) -> dict:
                 f"Unsupported file format '{Path(filename).suffix}'. "
                 f"Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
             ),
+        )
+
+    user = current_user_or_none(authorization)
+    cid = client_id_or_default(x_client_id)
+
+    if user is None and db.get_anon_used(cid) >= FREE_UPLOADS:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "login_required",
+                "message": f"You've used all {FREE_UPLOADS} free checks. Sign in to continue.",
+                "free_limit": FREE_UPLOADS,
+            },
         )
 
     video_id = generate_video_id()
@@ -170,6 +280,12 @@ async def upload_video(file: UploadFile = File(...)) -> dict:
                 )
             out.write(chunk)
 
+    # Only count successful uploads against the free quota.
+    if user is None:
+        used_now = db.increment_anon_used(cid)
+    else:
+        used_now = None
+
     with JOBS_LOCK:
         JOBS[video_id] = {
             "video_id": video_id,
@@ -181,6 +297,7 @@ async def upload_video(file: UploadFile = File(...)) -> dict:
             "message": "Uploaded. Ready to analyze.",
             "progress": 0,
             "created_at": time.time(),
+            "user_id": user["id"] if user else None,
             "result": None,
             "error": None,
         }
@@ -192,6 +309,8 @@ async def upload_video(file: UploadFile = File(...)) -> dict:
         "size_bytes": size,
         "status": "uploaded",
         "video_url": f"/api/videos/{video_id}/video",
+        "used_free": used_now,
+        "free_limit": None if user else FREE_UPLOADS,
     }
 
 
@@ -266,6 +385,20 @@ def get_video_file(video_id: str) -> FileResponse:
     job = get_job(video_id)
     media_type = mimetypes.guess_type(job["stored_filename"])[0] or "video/mp4"
     return FileResponse(job["filepath"], media_type=media_type)
+
+
+# --------------------------------------------------------------------------
+# Health
+# --------------------------------------------------------------------------
+@app.get("/health")
+def health() -> dict:
+    """Liveness + readiness check used by deployment platforms."""
+    return {
+        "status": "ok",
+        "model_loaded": hasattr(app.state, "model"),
+        "device": str(getattr(app.state, "device", "n/a")),
+        "model": model_module.MODEL_REPO_ID,
+    }
 
 
 # --------------------------------------------------------------------------

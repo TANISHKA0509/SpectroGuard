@@ -1,14 +1,30 @@
 /* SpectroGuard frontend logic.
- * Two views: landing (animated hero + CTA) and upload/analyze.
- * Hash routing: '#/upload' shows the analyzer, anything else shows the landing.
+ * Views: landing (animated hero + CTA) and upload/analyze (hash '#/upload').
+ * Auth: 3 free anonymous checks, then sign-in required (JWT in localStorage).
  */
 
 const ALLOWED = ["mp4", "mov", "avi", "mkv", "webm"];
+const FREE_LIMIT = 3;
 
 let videoId = null;
 let pollTimer = null;
+let pendingFile = null;
 
 const $ = (id) => document.getElementById(id);
+
+/* ================= Auth state ================= */
+let token = localStorage.getItem("sg_token") || null;
+let clientId = localStorage.getItem("sg_client_id");
+if (!clientId) {
+  clientId = (crypto.randomUUID && crypto.randomUUID()) || `cid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  localStorage.setItem("sg_client_id", clientId);
+}
+
+function apiHeaders(extra) {
+  const h = Object.assign({ "X-Client-Id": clientId }, extra || {});
+  if (token) h["Authorization"] = `Bearer ${token}`;
+  return h;
+}
 
 /* ================= View routing ================= */
 const landingView = $("landing-view");
@@ -54,6 +70,123 @@ function startCountUps() {
 /* ================= Seamless news ticker ================= */
 const tickerTrack = $("ticker-track");
 tickerTrack.innerHTML += tickerTrack.innerHTML;
+
+/* ================= Quota chip ================= */
+async function refreshQuota() {
+  try {
+    const res = await fetch("/api/quota", { headers: apiHeaders() });
+    const data = await res.json();
+    const chip = $("quota-chip");
+    if (data.authenticated) {
+      chip.textContent = "Unlimited";
+      chip.title = "Signed in - unlimited checks";
+      chip.classList.add("authed");
+      chip.classList.remove("exhausted");
+    } else {
+      chip.textContent = `${data.remaining} free`;
+      chip.title = `${data.used}/${data.limit} free checks used`;
+      chip.classList.remove("authed");
+      chip.classList.toggle("exhausted", data.remaining <= 0);
+    }
+  } catch { /* backend down - ignore */ }
+}
+
+/* ================= Auth UI ================= */
+function updateAuthUI() {
+  const logged = Boolean(token);
+  $("auth-btns").classList.toggle("hidden", logged);
+  $("user-chip").classList.toggle("hidden", !logged);
+  if (!logged) return;
+  fetch("/api/auth/me", { headers: apiHeaders() })
+    .then((r) => (r.ok ? r.json() : Promise.reject()))
+    .then((data) => { $("user-email").textContent = data.user.email; })
+    .catch(() => logout());
+}
+
+function logout() {
+  token = null;
+  localStorage.removeItem("sg_token");
+  updateAuthUI();
+  refreshQuota();
+}
+
+/* ================= Auth modal ================= */
+const modal = $("auth-modal");
+let authTab = "signin";
+
+function openAuthModal(note) {
+  if (note) $("modal-note").textContent = note;
+  setAuthTab(authTab);
+  modal.classList.remove("hidden");
+  setTimeout(() => $("auth-email").focus(), 50);
+}
+
+function closeAuthModal() {
+  modal.classList.add("hidden");
+  hide($("auth-error"));
+}
+
+function setAuthTab(tab) {
+  authTab = tab;
+  const signup = tab === "signup";
+  $("tab-signin").classList.toggle("active", !signup);
+  $("tab-signup").classList.toggle("active", signup);
+  $("modal-title").textContent = signup ? "Create account" : "Sign in";
+  $("modal-note").textContent = signup
+    ? "Create a free account for unlimited checks."
+    : "Sign in to continue with unlimited checks.";
+  $("auth-submit").textContent = signup ? "Create account" : "Sign in";
+  $("auth-password").autocomplete = signup ? "new-password" : "current-password";
+}
+
+$("signin-btn").addEventListener("click", () => { setAuthTab("signin"); openAuthModal(); });
+$("signup-btn").addEventListener("click", () => { setAuthTab("signup"); openAuthModal(); });
+$("modal-close").addEventListener("click", closeAuthModal);
+modal.addEventListener("click", (e) => { if (e.target === modal) closeAuthModal(); });
+$("tab-signin").addEventListener("click", () => setAuthTab("signin"));
+$("tab-signup").addEventListener("click", () => setAuthTab("signup"));
+$("logout-btn").addEventListener("click", logout);
+
+$("auth-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  hide($("auth-error"));
+  const email = $("auth-email").value.trim();
+  const password = $("auth-password").value;
+  const endpoint = authTab === "signup" ? "register" : "login";
+  const btn = $("auth-submit");
+  btn.disabled = true;
+  btn.textContent = "Please wait...";
+  try {
+    const res = await fetch(`/api/auth/${endpoint}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = typeof data.detail === "string" ? data.detail : "Authentication failed.";
+      $("auth-error").textContent = msg;
+      show($("auth-error"));
+      return;
+    }
+    token = data.token;
+    localStorage.setItem("sg_token", token);
+    closeAuthModal();
+    updateAuthUI();
+    refreshQuota();
+    if (pendingFile) {
+      const f = pendingFile;
+      pendingFile = null;
+      uploadFile(f);
+    }
+  } catch {
+    $("auth-error").textContent = "Network error. Please try again.";
+    show($("auth-error"));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = authTab === "signup" ? "Create account" : "Sign in";
+  }
+});
 
 /* ================= Upload / Analyze elements ================= */
 const dropzone = $("dropzone");
@@ -110,13 +243,22 @@ async function uploadFile(file) {
   const form = new FormData();
   form.append("file", file);
   try {
-    const res = await fetch("/api/upload", { method: "POST", body: form });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Upload failed");
+    const res = await fetch("/api/upload", { method: "POST", body: form, headers: apiHeaders() });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const detail = data.detail || {};
+      if (typeof detail === "object" && detail.code === "login_required") {
+        pendingFile = file;
+        openAuthModal(detail.message || "Sign in to continue.");
+        return;
+      }
+      throw new Error(typeof detail === "string" ? detail : "Upload failed");
+    }
     videoId = data.video_id;
     $("video-preview").src = data.video_url;
     show($("preview-block"));
     analyzeBtn.disabled = false;
+    refreshQuota(); // a free check was just used
   } catch (err) {
     setError(err.message);
   }
@@ -218,3 +360,5 @@ resetBtn.addEventListener("click", () => location.reload());
 
 /* ---------- Init ---------- */
 onHash();
+updateAuthUI();
+refreshQuota();

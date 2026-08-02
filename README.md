@@ -35,6 +35,9 @@ together and to serve as a portfolio project.
   faces found and processing time.
 - **Error handling** — unsupported formats, corrupt videos and oversized
   uploads return clear messages.
+- **Authentication & free checks** — the first **3 uploads are free** for
+  anonymous users; after that, signing in (email/password, JWT) is required.
+  Signed-in users get unlimited checks.
 
 ---
 
@@ -193,6 +196,10 @@ FastAPI auto-generates interactive docs at:
 |--------|---------------------------------|-------------------------------------------------|
 | GET    | `/`                             | Frontend UI                                     |
 | GET    | `/health`                       | Health / readiness check (used by platforms)    |
+| POST   | `/api/auth/register`            | Create account `{email, password}` → token      |
+| POST   | `/api/auth/login`               | Sign in `{email, password}` → token             |
+| GET    | `/api/auth/me`                  | Current user (requires `Authorization: Bearer`) |
+| GET    | `/api/quota`                    | Free-check quota left (or unlimited when signed in) |
 | POST   | `/api/upload`                   | Upload a video file (multipart `file`)          |
 | POST   | `/api/analyze/{video_id}`       | Start background analysis                       |
 | GET    | `/api/status/{video_id}`        | Job status + progress (0–100%)                  |
@@ -200,6 +207,17 @@ FastAPI auto-generates interactive docs at:
 | GET    | `/api/videos`                   | List all jobs in this process                   |
 | GET    | `/api/videos/{video_id}/video`  | Stream the uploaded video for preview           |
 | DELETE | `/api/videos/{video_id}`        | Delete an upload + job                          |
+
+### Authentication & free-check policy
+
+* Anonymous clients can upload **3 videos** (counted per browser via the
+  `X-Client-Id` header). The 4th upload returns `403 {"detail": {"code":
+  "login_required", ...}}`.
+* Register or sign in to get a JWT (valid 7 days) and upload unlimited videos.
+* Send the token with `Authorization: Bearer <token>`.
+* Passwords are salted and hashed with **PBKDF2-SHA256**; tokens are signed
+  with **PyJWT**. Set the `SPECTROGUARD_SECRET` env var in production.
+* Users and usage counters are stored in a local **SQLite** file (`data/`).
 
 ### Example result JSON
 

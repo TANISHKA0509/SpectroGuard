@@ -20,5 +20,6 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Misc
+# Runtime data (SQLite db, logs)
+data/
 *.log

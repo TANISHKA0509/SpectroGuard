@@ -23,9 +23,20 @@
         <span class="brand-sub">Deepfake Video Call Detection</span>
       </span>
     </button>
-    <a class="health" id="health" href="/health" target="_blank" title="Backend health">
-      <span class="dot"></span><span>backend</span>
-    </a>
+    <div class="top-actions">
+      <span class="quota" id="quota-chip" title="Free checks remaining">3 free</span>
+      <div class="auth-btns" id="auth-btns">
+        <button class="btn ghost sm" id="signin-btn">Sign in</button>
+        <button class="btn primary sm" id="signup-btn">Sign up</button>
+      </div>
+      <div class="user-chip hidden" id="user-chip">
+        <span class="user-email" id="user-email"></span>
+        <button class="btn ghost sm" id="logout-btn">Logout</button>
+      </div>
+      <a class="health" id="health" href="/health" target="_blank" title="Backend health">
+        <span class="dot"></span><span>backend</span>
+      </a>
+    </div>
   </header>
 
   <!-- ================= LANDING VIEW ================= -->
@@ -140,6 +151,8 @@
           </div>
         </div>
 
+        <p class="quota-hint">First <strong>3 checks are free</strong> &mdash; sign in for unlimited.</p>
+
         <div class="error-box hidden" id="error-box"></div>
 
         <div class="preview hidden" id="preview-block">
@@ -193,6 +206,32 @@
   </main>
 
   <footer>Built with FastAPI &middot; OpenCV &middot; PyTorch &middot; HTML/CSS/JS</footer>
+
+  <!-- ================= AUTH MODAL ================= -->
+  <div class="modal-overlay hidden" id="auth-modal">
+    <div class="modal">
+      <button class="modal-close" id="modal-close" title="Close">&times;</button>
+      <span class="modal-logo">SG</span>
+      <h3 id="modal-title">Sign in</h3>
+      <p class="modal-note" id="modal-note">Sign in to continue with unlimited checks.</p>
+
+      <div class="tabs">
+        <button class="tab active" id="tab-signin">Sign in</button>
+        <button class="tab" id="tab-signup">Create account</button>
+      </div>
+
+      <form id="auth-form">
+        <label for="auth-email">Email</label>
+        <input type="email" id="auth-email" placeholder="you@example.com" required autocomplete="email" />
+        <label for="auth-password">Password</label>
+        <input type="password" id="auth-password" placeholder="At least 6 characters" required autocomplete="current-password" minlength="6" />
+        <p class="auth-error hidden" id="auth-error"></p>
+        <button type="submit" class="btn primary full" id="auth-submit">Continue</button>
+      </form>
+
+      <p class="modal-foot">3 free checks per browser &middot; sign in for unlimited access.</p>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>

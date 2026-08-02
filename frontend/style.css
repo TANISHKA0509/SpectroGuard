@@ -89,6 +89,83 @@ body {
 .health.ok .dot { background: var(--green); box-shadow: 0 0 10px var(--green); }
 .health.down .dot { background: var(--red); box-shadow: 0 0 10px var(--red); }
 
+/* ---------- Top-right actions (quota + auth) ---------- */
+.top-actions { display: flex; align-items: center; gap: 10px; }
+.quota {
+  font-size: 12px; font-weight: 700; color: var(--cyan);
+  padding: 8px 13px; border-radius: 999px;
+  border: 1px solid rgba(55, 208, 255, 0.35); background: rgba(55, 208, 255, 0.08);
+}
+.quota.authed { color: var(--green); border-color: rgba(46, 204, 113, 0.4); background: rgba(46, 204, 113, 0.08); }
+.quota.exhausted { color: var(--red); border-color: rgba(255, 95, 122, 0.45); background: rgba(255, 95, 122, 0.1); animation: blink 1.6s infinite; }
+
+.auth-btns { display: flex; gap: 8px; }
+.btn.sm { padding: 8px 14px; font-size: 13px; border-radius: 999px; }
+.user-chip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 6px 5px 14px; border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.04);
+}
+.user-email { font-size: 12.5px; font-weight: 600; color: var(--text); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.quota-hint { margin-top: 14px; font-size: 12.5px; color: var(--muted); }
+.quota-hint strong { color: var(--cyan); }
+
+/* ---------- Auth modal ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: grid; place-items: center; padding: 20px;
+  background: rgba(5, 8, 20, 0.72); backdrop-filter: blur(6px);
+  animation: fadeIn 0.25s ease both;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  position: relative; width: 100%; max-width: 400px;
+  padding: 30px; border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--card), var(--card-2));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow);
+  animation: viewIn 0.3s ease both;
+}
+.modal-close {
+  position: absolute; top: 12px; right: 14px;
+  background: none; border: none; color: var(--muted);
+  font-size: 22px; cursor: pointer; line-height: 1;
+}
+.modal-close:hover { color: var(--text); }
+.modal-logo {
+  width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+  font-weight: 800; font-size: 16px; color: #fff; margin-bottom: 14px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 6px 20px rgba(91, 140, 255, 0.45);
+}
+.modal h3 { font-size: 22px; margin-bottom: 6px; }
+.modal-note { font-size: 13.5px; color: var(--muted); margin-bottom: 18px; }
+
+.tabs { display: flex; gap: 8px; background: rgba(255, 255, 255, 0.05); padding: 5px; border-radius: 12px; margin-bottom: 20px; }
+.tab {
+  flex: 1; padding: 9px; border: none; border-radius: 9px; cursor: pointer;
+  background: transparent; color: var(--muted); font-size: 13.5px; font-weight: 700;
+  font-family: var(--font); transition: background 0.2s, color 0.2s;
+}
+.tab.active { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
+
+#auth-form { display: grid; gap: 8px; }
+#auth-form label { font-size: 12.5px; font-weight: 600; color: var(--muted); margin-top: 6px; }
+#auth-form input {
+  padding: 12px 14px; border-radius: 10px; font-size: 14px; color: var(--text);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.14);
+  outline: none; font-family: var(--font);
+}
+#auth-form input:focus { border-color: var(--accent); }
+.auth-error {
+  margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+  background: var(--red-bg); border: 1px solid rgba(255, 95, 122, 0.4);
+  color: #ffb3c0; font-size: 13px;
+}
+.btn.full { width: 100%; margin-top: 16px; }
+.modal-foot { margin-top: 16px; text-align: center; font-size: 12px; color: var(--muted); }
+
 /* ---------- Views ---------- */
 .view { animation: viewIn 0.45s ease both; }
 @keyframes viewIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
