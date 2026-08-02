@@ -27,7 +27,31 @@ def _connect() -> sqlite3.Connection:
     ensure_dir(DATA_DIR)
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    _ensure_schema(conn)
     return conn
+
+
+def _ensure_schema(conn: sqlite3.Connection) -> None:
+    """Create tables if missing (idempotent; keeps the DB self-healing)."""
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id            TEXT PRIMARY KEY,
+            email         TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            salt          TEXT NOT NULL,
+            created_at    REAL NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS anon_usage (
+            client_id TEXT PRIMARY KEY,
+            used      INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
 
 
 def _execute(sql: str, params: tuple = ()) -> sqlite3.Cursor:
@@ -51,26 +75,9 @@ def _query_one(sql: str, params: tuple = ()) -> sqlite3.Row | None:
 
 
 def init_db() -> None:
-    """Create tables on first run."""
-    _execute(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-            id            TEXT PRIMARY KEY,
-            email         TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            salt          TEXT NOT NULL,
-            created_at    REAL NOT NULL
-        )
-        """
-    )
-    _execute(
-        """
-        CREATE TABLE IF NOT EXISTS anon_usage (
-            client_id TEXT PRIMARY KEY,
-            used      INTEGER NOT NULL DEFAULT 0
-        )
-        """
-    )
+    """Create tables on first run (called at application startup)."""
+    conn = _connect()
+    conn.close()
 
 
 # --------------------------------------------------------------------------
