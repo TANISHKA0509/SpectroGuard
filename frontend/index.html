@@ -7,89 +7,192 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <!-- Animated background orbs -->
+  <div class="bg" aria-hidden="true">
+    <span class="orb orb-1"></span>
+    <span class="orb orb-2"></span>
+    <span class="orb orb-3"></span>
+    <div class="grid"></div>
+  </div>
+
   <header class="topbar">
-    <div class="brand">
+    <button class="brand" id="brand" title="Back to home">
       <span class="logo">SG</span>
-      <div>
-        <h1>SpectroGuard</h1>
-        <p>Deepfake Video Call Detection Prototype</p>
-      </div>
-    </div>
+      <span class="brand-text">
+        <span class="brand-title">SpectroGuard</span>
+        <span class="brand-sub">Deepfake Video Call Detection</span>
+      </span>
+    </button>
     <a class="health" id="health" href="/health" target="_blank" title="Backend health">
-      <span class="dot"></span> backend
+      <span class="dot"></span><span>backend</span>
     </a>
   </header>
 
-  <main class="container">
-    <!-- Step 1: Upload -->
-    <section class="card" id="upload-card">
-      <h2>1 &middot; Upload a video</h2>
-      <p class="hint">MP4 recommended (also .mov, .avi, .mkv, .webm) &mdash; max 200 MB</p>
+  <!-- ================= LANDING VIEW ================= -->
+  <main id="landing-view" class="view">
+    <section class="hero">
+      <div class="scan-line" aria-hidden="true"></div>
+      <span class="hero-badge">Educational Prototype &middot; PyTorch &middot; OpenCV &middot; FastAPI</span>
 
-      <div class="dropzone" id="dropzone">
-        <input type="file" id="file-input" accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm" />
-        <div class="dz-inner" id="dz-inner">
-          <div class="dz-icon">&#9654;</div>
-          <p>Drag &amp; drop a video here, or <strong>click to browse</strong></p>
-          <p class="dz-file" id="dz-file"></p>
+      <h1 class="spectrog" aria-label="SpectroGuard">
+        <span class="sg-spec">SPECTRO</span><span class="sg-guard">GUARD</span>
+      </h1>
+
+      <p class="tagline">Real or fake? <strong>SpectroGuard</strong> analyzes video frames with a
+        pre-trained deepfake detector and tells you within seconds.</p>
+
+      <div class="hero-stats" id="hero-stats">
+        <div class="hero-stat">
+          <strong><span data-count="550" data-suffix="%">0</span></strong>
+          <span>rise in AI-assisted video scams*</span>
+        </div>
+        <div class="hero-stat">
+          <strong><span data-count="90" data-suffix="%">0</span></strong>
+          <span>of deepfakes target fraud*</span>
+        </div>
+        <div class="hero-stat">
+          <strong><span data-count="21.8" data-suffix="M">0</span></strong>
+          <span>pre-trained model parameters</span>
         </div>
       </div>
-
-      <div class="error-box hidden" id="error-box"></div>
-
-      <div class="preview hidden" id="preview-block">
-        <video id="video-preview" controls playsinline></video>
-      </div>
-
-      <div class="actions">
-        <button class="btn primary" id="analyze-btn" disabled>Analyze Video</button>
-        <button class="btn ghost" id="reset-btn" disabled>Reset</button>
-      </div>
+      <p class="hero-fineprint">*Illustrative figures for educational purposes.</p>
     </section>
 
-    <!-- Step 2: Progress -->
-    <section class="card hidden" id="status-card">
-      <h2>2 &middot; Analyzing</h2>
-      <div class="status-row">
-        <span class="spinner"></span>
-        <span id="status-message">Starting analysis...</span>
+    <!-- Why it's needed - news briefing -->
+    <section class="news">
+      <div class="news-head">
+        <span class="live-dot"></span>
+        <span>WHY THIS MATTERS &mdash; THE BRIEFING</span>
       </div>
-      <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
-    </section>
 
-    <!-- Step 3: Results -->
-    <section class="card hidden" id="result-card">
-      <h2>3 &middot; Result</h2>
+      <div class="news-grid">
+        <article class="news-card">
+          <span class="news-tag">Fraud</span>
+          <h3>Deepfake video calls are now a business risk</h3>
+          <p>Face-swapped voices and faces are being used to bypass identity checks and authorize fake
+            transfers. A single convincing call is enough.</p>
+        </article>
+        <article class="news-card">
+          <span class="news-tag">Trust</span>
+          <h3>Human detection is no better than a coin flip</h3>
+          <p>Studies show people correctly judge real vs. synthetic media only around 50&ndash;60% of the
+            time &mdash; machines can do much better.</p>
+        </article>
+        <article class="news-card">
+          <span class="news-tag">Cost</span>
+          <h3>Scams are getting cheaper to produce</h3>
+          <p>Cloning a voice or face now needs seconds of footage and free tools, dropping the barrier for
+            attackers to near zero.</p>
+        </article>
+      </div>
 
-      <div class="verdict" id="verdict">
-        <div class="badge" id="prediction-badge">REAL</div>
-        <div class="confidence">
-          <div class="confidence-head">
-            <span>Confidence</span>
-            <strong id="confidence-value">0%</strong>
+      <div class="ticker-wrap">
+        <div class="ticker">
+          <div class="ticker-track" id="ticker-track">
+            <span>&bull; Every video call could feature a face that isn&rsquo;t there.</span>
+            <span>&bull; Detectors must keep up with generators.</span>
+            <span>&bull; A deepfake can be created from seconds of footage.</span>
+            <span>&bull; Trust is the target &mdash; verification is the defense.</span>
+            <span>&bull; SpectroGuard: frame-by-frame forensic check.</span>
           </div>
-          <div class="bar"><div class="bar-fill" id="confidence-bar"></div></div>
         </div>
       </div>
+    </section>
 
-      <div class="stats" id="stats">
-        <div class="stat"><span>Frames analyzed</span><strong id="frames">-</strong></div>
-        <div class="stat"><span>Faces found</span><strong id="faces">-</strong></div>
-        <div class="stat"><span>Processing time</span><strong id="time">-</strong></div>
-        <div class="stat"><span>Votes (Real/Fake)</span><strong id="votes">-</strong></div>
+    <!-- Call to action -->
+    <section class="cta">
+      <h2>Want to check a video &mdash; is it real or fake?</h2>
+      <p>Upload a clip and SpectroGuard samples its frames, runs them through a pre-trained model,
+        and returns a REAL / FAKE verdict with a confidence score.</p>
+      <button class="btn primary big" id="go-upload">
+        Upload your video
+        <span class="btn-arrow">&rarr;</span>
+      </button>
+    </section>
+
+    <!-- Roadmap teaser -->
+    <section class="roadmap">
+      <div class="roadmap-card">
+        <span class="roadmap-badge">Coming soon</span>
+        <h3>Live Video Call Detection</h3>
+        <p>Real-time deepfake alerting during calls &mdash; streaming frames over WebSocket instead of
+          analyzing uploaded files.</p>
       </div>
-
-      <p class="disclaimer">
-        Educational prototype. This verdict is based on sampled frames from a
-        pre-trained FaceForensics++ model and is <strong>not</strong> a forensic-grade
-        or production-level result.
-      </p>
     </section>
   </main>
 
-  <footer>
-    Built with FastAPI &middot; OpenCV &middot; PyTorch &middot; HTML/CSS/JS
-  </footer>
+  <!-- ================= UPLOAD / ANALYZE VIEW ================= -->
+  <main id="app-view" class="view hidden">
+    <div class="container">
+      <button class="btn ghost back" id="back-home">&larr; Back to home</button>
+
+      <!-- Step 1: Upload -->
+      <section class="card" id="upload-card">
+        <h2 class="step"><span>1</span> Upload a video</h2>
+        <p class="hint">MP4 recommended (also .mov, .avi, .mkv, .webm) &mdash; max 200 MB</p>
+
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="file-input" accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm" />
+          <div class="dz-inner">
+            <div class="dz-icon">&#9654;</div>
+            <p>Drag &amp; drop a video here, or <strong>click to browse</strong></p>
+            <p class="dz-file" id="dz-file"></p>
+          </div>
+        </div>
+
+        <div class="error-box hidden" id="error-box"></div>
+
+        <div class="preview hidden" id="preview-block">
+          <video id="video-preview" controls playsinline></video>
+        </div>
+
+        <div class="actions">
+          <button class="btn primary" id="analyze-btn" disabled>Analyze Video</button>
+          <button class="btn ghost" id="reset-btn" disabled>Reset</button>
+        </div>
+      </section>
+
+      <!-- Step 2: Progress -->
+      <section class="card hidden" id="status-card">
+        <h2 class="step"><span>2</span> Analyzing</h2>
+        <div class="status-row">
+          <span class="spinner"></span>
+          <span id="status-message">Starting analysis...</span>
+        </div>
+        <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+      </section>
+
+      <!-- Step 3: Result -->
+      <section class="card hidden" id="result-card">
+        <h2 class="step"><span>3</span> Result</h2>
+
+        <div class="verdict">
+          <div class="badge" id="prediction-badge">REAL</div>
+          <div class="confidence">
+            <div class="confidence-head">
+              <span>Confidence</span>
+              <strong id="confidence-value">0%</strong>
+            </div>
+            <div class="bar"><div class="bar-fill" id="confidence-bar"></div></div>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><span>Frames analyzed</span><strong id="frames">-</strong></div>
+          <div class="stat"><span>Faces found</span><strong id="faces">-</strong></div>
+          <div class="stat"><span>Processing time</span><strong id="time">-</strong></div>
+          <div class="stat"><span>Votes (Real/Fake)</span><strong id="votes">-</strong></div>
+        </div>
+
+        <p class="disclaimer">
+          Educational prototype. This verdict is based on sampled frames from a pre-trained
+          FaceForensics++ model and is <strong>not</strong> a forensic-grade or production-level result.
+        </p>
+      </section>
+    </div>
+  </main>
+
+  <footer>Built with FastAPI &middot; OpenCV &middot; PyTorch &middot; HTML/CSS/JS</footer>
 
   <script src="script.js"></script>
 </body>

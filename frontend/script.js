@@ -1,5 +1,6 @@
 /* SpectroGuard frontend logic.
- * Flow: upload -> analyze -> poll status -> render result.
+ * Two views: landing (animated hero + CTA) and upload/analyze.
+ * Hash routing: '#/upload' shows the analyzer, anything else shows the landing.
  */
 
 const ALLOWED = ["mp4", "mov", "avi", "mkv", "webm"];
@@ -9,6 +10,52 @@ let pollTimer = null;
 
 const $ = (id) => document.getElementById(id);
 
+/* ================= View routing ================= */
+const landingView = $("landing-view");
+const appView = $("app-view");
+let counted = false;
+
+function showView(name) {
+  const isLanding = name !== "app";
+  landingView.classList.toggle("hidden", !isLanding);
+  appView.classList.toggle("hidden", isLanding);
+  window.scrollTo({ top: 0 });
+  if (isLanding) startCountUps();
+}
+
+function onHash() {
+  showView(location.hash === "#/upload" ? "app" : "landing");
+}
+
+$("go-upload").addEventListener("click", () => (location.hash = "#/upload"));
+$("back-home").addEventListener("click", () => (location.hash = "#/"));
+$("brand").addEventListener("click", () => (location.hash = "#/"));
+window.addEventListener("hashchange", onHash);
+
+/* ================= Animated count-up stats ================= */
+function startCountUps() {
+  if (counted) return;
+  counted = true;
+  document.querySelectorAll("[data-count]").forEach((el) => {
+    const target = parseFloat(el.dataset.count);
+    const suffix = el.dataset.suffix || "";
+    const decimals = target % 1 !== 0 ? 1 : 0;
+    const duration = 1500;
+    const t0 = performance.now();
+    const fmt = (v) => (decimals ? v.toFixed(decimals) : Math.round(v)) + suffix;
+    (function step(now) {
+      const p = Math.min((now - t0) / duration, 1);
+      el.textContent = fmt(target * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  });
+}
+
+/* ================= Seamless news ticker ================= */
+const tickerTrack = $("ticker-track");
+tickerTrack.innerHTML += tickerTrack.innerHTML;
+
+/* ================= Upload / Analyze elements ================= */
 const dropzone = $("dropzone");
 const fileInput = $("file-input");
 const analyzeBtn = $("analyze-btn");
@@ -134,7 +181,6 @@ async function fetchResult() {
 function renderResult(r) {
   const prediction = r.prediction; // "REAL" | "FAKE"
   const confidence = Math.round((r.confidence || 0) * 100);
-  const isFake = prediction === "FAKE";
 
   const badge = $("prediction-badge");
   badge.textContent = prediction;
@@ -149,14 +195,11 @@ function renderResult(r) {
   $("frames").textContent = r.frames_analyzed ?? "-";
   $("faces").textContent = r.faces_detected ?? "-";
   $("time").textContent = r.processing_time != null ? `${r.processing_time}s` : "-";
-  $("votes").textContent =
-    r.votes ? `${r.votes.REAL} / ${r.votes.FAKE}` : "-";
+  $("votes").textContent = r.votes ? `${r.votes.REAL} / ${r.votes.FAKE}` : "-";
 
   hide(statusCard);
   show(resultCard);
   show(uploadCard);
-
-  document.querySelector(".health").classList.add("ok");
 }
 
 /* ---------- Reset ---------- */
@@ -166,9 +209,12 @@ resetBtn.addEventListener("click", () => location.reload());
 (async () => {
   try {
     const res = await fetch("/health");
-    if (res.ok) document.querySelector(".health").classList.add("ok");
-    else document.querySelector(".health").classList.add("down");
+    document.querySelector(".health").classList.toggle("ok", res.ok);
+    document.querySelector(".health").classList.toggle("down", !res.ok);
   } catch {
     document.querySelector(".health").classList.add("down");
   }
 })();
+
+/* ---------- Init ---------- */
+onHash();
