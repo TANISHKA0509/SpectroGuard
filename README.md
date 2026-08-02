@@ -15,7 +15,7 @@ together and to serve as a portfolio project.
 
 ---
 
-## ✨ Features
+##  Features
 
 - **Upload MP4** (also `.mov`, `.avi`, `.mkv`, `.webm`; max 200 MB) via a
   drag-and-drop web UI or the REST API.
@@ -41,7 +41,7 @@ together and to serve as a portfolio project.
 
 ---
 
-## 🧠 Model
+##  Model
 
 | Field        | Value                                                                 |
 |--------------|-----------------------------------------------------------------------|
@@ -58,7 +58,7 @@ or at Docker build time, so the repository stays small.
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
                     ┌──────────────────────────────────────────────────┐
@@ -94,7 +94,7 @@ or at Docker build time, so the repository stays small.
 
 ---
 
-## 📁 Folder structure
+## Folder structure
 
 ```
 spectroguard/
@@ -162,7 +162,7 @@ optional locally.
 
 ---
 
-## 🚀 How to run
+## How to run
 
 ```bash
 uvicorn backend.app:app --host 0.0.0.0 --port 8000
@@ -310,7 +310,7 @@ Two ready-made options:
 
 ---
 
-## ⚠️ Limitations
+## Limitations
 
 - **Educational scope** — this is a prototype, not a production/forensic tool.
 - **Single-frame analysis** — no temporal/optical-flow features; frames are
@@ -341,7 +341,7 @@ Two ready-made options:
 
 ---
 
-## 📚 References
+## References
 
 - XceptionNet — Chollet (2017): *"Xception: Deep Learning with Depthwise Separable Convolutions"*
 - FaceForensics++ — Rössler et al. (2019)
